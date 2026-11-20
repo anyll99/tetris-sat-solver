@@ -36,19 +36,67 @@ A cell is written $(r, c)$. Row 0 is the top row and $r$ increases downward, up 
 
 ### Variables
 
-Each step $t$ goes through two boards: the **in-between board** right after piece $t$ locks, and **frame $t$** after full rows have been removed.
+For each piece $t$:
 
-$$\text{frame } t-1 \;\xrightarrow{\ \text{piece } t \text{ locks}\ }\; \text{in-between board } t \;\xrightarrow{\ \text{full rows removed}\ }\; \text{frame } t$$
+1. We start from frame $t-1$.
+2. Piece $t$ locks, so the resulting board is the in-between board $t$.
+3. Full rows are removed, so we get a clean frame $t$.
 
-| Variable | Meaning | Indices |
+- **$p(t,o,r,c)$:** means that piece $t$ locks in rotation $o$ with its pivot at row $r$, column $c$, for $t \in \lbrace 1, \dots, n \rbrace$ and $(o, r, c) \in S_t$.
+- **$b(t,r,c)$:** cell $(r, c)$ is filled in frame $t$, for $t \in \lbrace 0, \dots, n \rbrace$ and every cell $(r, c)$.
+- **$m(t,r,c)$:** cell $(r, c)$ is filled in the in-between board $t$, for $t \in \lbrace 1, \dots, n \rbrace$ and every cell $(r, c)$.
+- **$f(t,r)$:** row $r$ is full in the in-between board $t$, for $t \in \lbrace 1, \dots, n \rbrace$ and $r \in \lbrace 0, \dots, H-1 \rbrace$.
+- **$d(t,r,k)$:** exactly $k$ of the rows below row $r$ are full in the in-between board $t$, for $t \in \lbrace 1, \dots, n \rbrace$, $r \in \lbrace 0, \dots, H-1 \rbrace$ and $k \in \lbrace 0, \dots, 4 \rbrace$.
+
+**Frame 0** is our starting board.We know that a single piece always covers 4 cells which means that at most four rows can be full at once by inserting a vertical "I" tetromino, so $k$ never exceeds 4.
+
+## Pieces and Rotation
+
+- Every piece has a pivot cell which they use as the pivot when there is a rotation. A rotation is described by where its 4 cells sit relative to the pivot $(\Delta r, \Delta c)$, with down and right being +1, And the pivot itself is (0,0). A rotation can be done only when if the turned piece fits these new cells 
+
+- Number of rotations is denoted as $k(\tau)$: 1 for O, 2 for I, S and Z, 4 for T, L and J.
+
+### Table of rotations
+
+| Piece | Rotation | Cells $(\Delta r, \Delta c)$ |
 |---|---|---|
-| $p(t,o,r,c)$ | piece $t$ locks in rotation $o$ with its pivot at row $r$, column $c$ | $t \in \lbrace 1, \dots, n \rbrace$, $(o, r, c) \in S_t$ |
-| $b(t,r,c)$ | cell $(r, c)$ is filled in frame $t$ | $t \in \lbrace 0, \dots, n \rbrace$, all cells $(r, c)$ |
-| $m(t,r,c)$ | cell $(r, c)$ is filled in the in-between board $t$ | $t \in \lbrace 1, \dots, n \rbrace$, all cells $(r, c)$ |
-| $f(t,r)$ | row $r$ is full in the in-between board $t$ | $t \in \lbrace 1, \dots, n \rbrace$, $r \in \lbrace 0, \dots, H-1 \rbrace$ |
-| $d(t,r,k)$ | exactly $k$ of the rows below row $r$ are full in the in-between board $t$ | $t \in \lbrace 1, \dots, n \rbrace$, $r \in \lbrace 0, \dots, H-1 \rbrace$, $k \in \lbrace 0, \dots, 4 \rbrace$ |
+| I | 1 | (0,0), (0,−1), (0,−2), (0,−3) |
+| I | 2 | (0,0), (−1,0), (−2,0), (−3,0) |
+| O | 1 | (0,0), (0,1), (1,0), (1,1) |
+| S | 1 | (0,0), (0,−1), (−1,−1), (1,0) |
+| S | 2 | (0,0), (0,−1), (−1,0), (−1,1) |
+| Z | 1 | (0,0), (0,−1), (−1,0), (1,−1) |
+| Z | 2 | (0,0), (0,1), (−1,0), (−1,−1) |
+| L | 1 | (0,0), (0,1), (−1,0), (−2,0) |
+| L | 2 | (0,0), (0,1), (0,2), (1,0) |
+| L | 3 | (0,0), (0,−1), (1,0), (2,0) |
+| L | 4 | (0,0), (0,−1), (0,−2), (−1,0) |
+| J | 1 | (0,0), (0,−1), (−1,0), (−2,0) |
+| J | 2 | (0,0), (0,1), (0,2), (−1,0) |
+| J | 3 | (0,0), (0,1), (1,0), (2,0) |
+| J | 4 | (0,0), (0,−1), (0,−2), (1,0) |
+| T | 1 | (0,0), (0,−1), (0,1), (−1,0) |
+| T | 2 | (0,0), (0,1), (−1,0), (1,0) |
+| T | 3 | (0,0), (0,−1), (0,1), (1,0) |
+| T | 4 | (0,0), (0,−1), (−1,0), (1,0) |
 
-**Frame 0** is the starting board. Since a piece covers at most four rows, at most four rows can be full at once, so $k$ never exceeds 4.
+$D(\tau, o)$ is the set of offsets of piece type $\tau$ in rotation $o$, from the table.
+
+$$C_t(o, r, c) = \lbrace (r + \Delta r,\ c + \Delta c) : (\Delta r, \Delta c) \in D(\tau_t, o) \rbrace$$
+
+the cells covered by piece t at that spot
+
+$$S_t = \lbrace (o, r, c) : 1 \le o \le k(\tau_t),\ C_t(o, r, c) \subseteq \lbrace 0, \dots, H-1 \rbrace \times \lbrace 0, \dots, W-1 \rbrace \rbrace$$
+
+all spots where the whole piece fits inside the board
+
+$$\mathrm{Cov}_t(r, c) = \lbrace (o, r_0, c_0) \in S_t : (r, c) \in C_t(o, r_0, c_0) \rbrace$$
+
+all spots of piece t that cover cell $(r,c)$
+
+$$\mathrm{Below}_t(o,r,c) = \lbrace (r'+1,\ c') : (r',c') \in C_t(o,r,c) \rbrace \setminus C_t(o,r,c)$$
+
+the cells that are directly under piece t at that spot, not counting the cells of the piece itself
 
 ## Constraints
 
@@ -80,4 +128,43 @@ $$p(t,o,r,c) \rightarrow m(t,r',c') \quad \equiv \quad \neg p(t,o,r,c) \lor m(t,
 
 $$b(t-1,r,c) \rightarrow m(t,r,c) \quad \equiv \quad \neg b(t-1,r,c) \lor m(t,r,c)$$
 
-> #TODO write all the remaining constraints
+### 4b. A cell of the in-between board is filled only if it was filled before or the new piece covers it.
+
+$$m(t,r,c) \rightarrow b(t-1,r,c) \lor \bigvee_{(o,r_0,c_0) \in \mathrm{Cov}_t(r,c)} p(t,o,r_0,c_0) \quad \equiv \quad \neg m(t,r,c) \lor b(t-1,r,c) \lor \bigvee_{(o,r_0,c_0) \in \mathrm{Cov}_t(r,c)} p(t,o,r_0,c_0)$$
+
+### 5. Locking: the piece rests on the floor or on a filled cell
+
+Where the piece does not touch the floor, i.e. every $(r',c') \in C_t(o,r,c)$ has $r' < H-1$:
+
+$$p(t,o,r,c) \rightarrow \bigvee_{(r'',c'') \in \mathrm{Below}_t(o,r,c)} b(t-1,r'',c'') \quad \equiv \quad \neg p(t,o,r,c) \lor \bigvee_{(r'',c'') \in \mathrm{Below}_t(o,r,c)} b(t-1,r'',c'')$$
+
+### 7. A row is full exactly when all its cells are filled
+
+$$f(t,r) \leftrightarrow \bigwedge_{c=0}^{W-1} m(t,r,c)$$
+
+*If the row is full, every cell is filled,* for each column $c$:
+
+$$f(t,r) \rightarrow m(t,r,c) \quad \equiv \quad \neg f(t,r) \lor m(t,r,c)$$
+
+*If every cell is filled, the row is full:*
+
+$$\left( \bigwedge_{c=0}^{W-1} m(t,r,c) \right) \rightarrow f(t,r) \quad \equiv \quad \bigvee_{c=0}^{W-1} \neg m(t,r,c) \lor f(t,r)$$
+
+### 8. Counting the full rows below each row
+
+We count from the bottom up. The bottom row has nothing below it:
+
+$$d(t,H-1,0)$$
+
+Going up one row, the count stays the same if the row below is not full, and goes up by one if it is full, for $r < H-1$:
+
+$$\neg d(t,r+1,k) \lor f(t,r+1) \lor d(t,r,k)$$
+
+$$\neg d(t,r+1,k) \lor \neg f(t,r+1) \lor d(t,r,k+1) \qquad (k \le 3)$$
+
+Each row has exactly one count, for $k \neq k'$:
+
+$$\neg d(t,r,k) \lor \neg d(t,r,k')$$
+
+
+
